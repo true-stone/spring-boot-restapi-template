@@ -23,3 +23,9 @@ spring:
     properties:
       hibernate:
         auto_quote_keyword: true
+
+jwt:
+  # Base64로 인코딩된 시크릿 키
+  secret-key: i2zLpRJJoYQASmbgAzcAvLTUczmcsv45Zu3rMtkWbKtvafvH3vvnrWwhcOFGg9SfEmEWPWlOQ71qPkf6Q9CGPw==
+  access-token-expire-seconds: 86400
+  refresh-token-expire-seconds: 604800

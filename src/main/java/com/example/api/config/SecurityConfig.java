@@ -1,9 +1,13 @@
 package com.example.api.config;
 
+import com.example.api.filter.JwtAuthenticationFilter;
 import com.example.api.security.PublicEndpoints;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -12,13 +16,17 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.boot.security.autoconfigure.web.servlet.PathRequest.toH2Console;
 import static org.springframework.boot.security.autoconfigure.web.servlet.PathRequest.toStaticResources;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {
@@ -42,16 +50,34 @@ public class SecurityConfig {
                         // 공개 엔드포인트 (상황에 맞게 조정)
                         .requestMatchers(toH2Console(), toStaticResources().atCommonLocations()).permitAll()
                         .requestMatchers(PublicEndpoints.COMMON).permitAll()
+                        .requestMatchers(PublicEndpoints.AUTH).permitAll()
+                        .requestMatchers(HttpMethod.POST, PublicEndpoints.USER).permitAll()
 
                         // 그 외는 인증 필요
                         .anyRequest().authenticated()
-                );
+                )
+
+                // 검증 필터 추가
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        ;
+
         return http.build();
     }
 
+    /**
+     * 인증과 인가에 사용될 패스워드 인코딩 방식을 지정
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 인증을 총괄하는 AuthenticationManager를 생성
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
 }
