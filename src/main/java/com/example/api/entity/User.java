@@ -22,9 +22,20 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private String email;
+
     @Builder
-    public  User(String username, String password) {
+    public  User(String username, String password, String email) {
         this.username = username;
         this.password = password;
+        this.email = email;
+    }
+
+    public static User create(String username, String password, String email) {
+        return User.builder()
+                .username(username)
+                .password(password)
+                .email(email)
+                .build();
     }
 }
