@@ -4,6 +4,7 @@ import com.example.api.dto.LoginRequest;
 import com.example.api.dto.LoginResponse;
 import com.example.api.jwt.JwtProvider;
 import com.example.api.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
 
         LoginResponse response = authService.login(loginRequest);
         HttpHeaders headers = new HttpHeaders();
