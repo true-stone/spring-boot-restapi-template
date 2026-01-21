@@ -36,6 +36,7 @@ public class UserService {
         User user = User.create(
                 request.username(),
                 encodePassword,
+                request.name(),
                 request.email()
         );
 
