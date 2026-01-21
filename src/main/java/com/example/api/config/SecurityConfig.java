@@ -1,5 +1,7 @@
 package com.example.api.config;
 
+import com.example.api.jwt.JwtAccessDeniedHandler;
+import com.example.api.jwt.JwtAuthenticationEntryPoint;
 import com.example.api.filter.JwtAuthenticationFilter;
 import com.example.api.security.PublicEndpoints;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ import static org.springframework.boot.security.autoconfigure.web.servlet.PathRe
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {
@@ -47,6 +51,7 @@ public class SecurityConfig {
 
                 // 인가(Authorization) 정책
                 .authorizeHttpRequests(authorize -> authorize
+
                         // 공개 엔드포인트 (상황에 맞게 조정)
                         .requestMatchers(toH2Console(), toStaticResources().atCommonLocations()).permitAll()
                         .requestMatchers(PublicEndpoints.COMMON).permitAll()
@@ -56,6 +61,10 @@ public class SecurityConfig {
                         // 그 외는 인증 필요
                         .anyRequest().authenticated()
                 )
+
+                .exceptionHandling(handler -> handler
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler))
 
                 // 검증 필터 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

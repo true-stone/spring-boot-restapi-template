@@ -88,25 +88,6 @@ public class JwtProvider {
                 .compact();
     }
 
-    public boolean validateToken(String token) {
-        if (!StringUtils.hasText(token)) {
-            return false;
-        }
-
-        try {
-            getClaims(token);
-            return true;
-        } catch (ExpiredJwtException e) {
-            log.info("Expired JWT token: {}", e.getMessage());
-            log.debug("Expired JWT token trace", e);
-        } catch (JwtException | IllegalArgumentException e) {
-            // 서명 불일치, 변조, 형식 오류, 미지원 토큰 등
-            log.info("Invalid JWT token: {}", e.getMessage());
-            log.debug("Invalid JWT token trace", e);
-        }
-        return false;
-    }
-
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
 
@@ -126,7 +107,7 @@ public class JwtProvider {
         return accessTokenExpireMilliseconds / 1000L;
     }
 
-    private Claims getClaims(String token) {
+    public Claims getClaims(String token) {
         return jwtParser.parseSignedClaims(token).getPayload();
     }
 }

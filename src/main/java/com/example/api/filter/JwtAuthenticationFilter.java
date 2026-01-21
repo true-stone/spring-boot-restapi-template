@@ -1,6 +1,9 @@
 package com.example.api.filter;
 
+import com.example.api.exception.ErrorCode;
 import com.example.api.jwt.JwtProvider;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,24 +26,32 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    public static final String EXCEPTION_ATTRIBUTE_KEY = "exception";
     private final JwtProvider jwtProvider;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Request Header에서 JWT 추출
         String token = jwtProvider.getJwtFromRequest(request);
 
-        // 2. validateToken으로 토큰 유효성 검사
-        if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
-            // 토큰이 유효할 경우 토큰에서 Authentication 객체를 가져와서 SecurityContext에 저장
-            Authentication authentication = jwtProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.debug("SecurityContext에 '{}' 인증 정보를 저장했습니다. uri: {}", authentication.getName(), request.getRequestURI());
+        if (StringUtils.hasText(token)) {
+            try {
+                jwtProvider.getClaims(token);
+
+                // 예외가 발생하지 않았다면, 토큰이 유효한 것이므로 인증 정보를 설정합니다.
+                Authentication authentication = jwtProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("SecurityContext에 '{}' 인증 정보를 저장했습니다. uri: {}", authentication.getName(), request.getRequestURI());
+            } catch (ExpiredJwtException e) {
+                // 만료된 토큰 예외 처리
+                request.setAttribute(EXCEPTION_ATTRIBUTE_KEY, ErrorCode.TOKEN_EXPIRED);
+            } catch (JwtException | IllegalArgumentException e) {
+                // 유효하지 않은 토큰
+                request.setAttribute(EXCEPTION_ATTRIBUTE_KEY, ErrorCode.INVALID_TOKEN);
+            }
         }
 
-        // 3. 다음 필터로 제어 전달
         filterChain.doFilter(request, response);
     }
 }

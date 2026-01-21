@@ -3,6 +3,8 @@ package com.example.api.service;
 import com.example.api.dto.UserCreateRequest;
 import com.example.api.dto.UserResponse;
 import com.example.api.entity.User;
+import com.example.api.exception.BusinessException;
+import com.example.api.exception.ErrorCode;
 import com.example.api.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,11 @@ public class UserService {
     public void signUp(UserCreateRequest request) {
 
         if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("이미 존재하는 회원입니다.");
+            throw new BusinessException(ErrorCode.DUPLICATE_USERNAME);
+        }
+
+        if (userRepository.existsByEmail(request.email())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
 
         String encodePassword = passwordEncoder.encode(request.password());
@@ -38,7 +44,7 @@ public class UserService {
 
     public UserResponse me(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         return UserResponse.from(user);
     }
 }
