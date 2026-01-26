@@ -1,6 +1,9 @@
 package com.example.api.jwt;
 
-import io.jsonwebtoken.*;
+import com.example.api.security.UserDetailsImpl;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,9 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -70,9 +71,14 @@ public class JwtProvider {
      * @return AccessToken
      */
     public String generateAccessToken(Authentication authentication) {
+        UUID publicId = extractPublicId(authentication);
+
         // 권한
-        String authorities = authentication.getAuthorities().stream()
+        String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .filter(a -> a != null && a.startsWith("ROLE_"))   // ✅ 핵심
+                .distinct()
+                .sorted()
                 .collect(Collectors.joining(","));
 
         // 생성일 & 만료일
@@ -80,8 +86,8 @@ public class JwtProvider {
         Date expiresIn = new Date(now.getTime() + this.accessTokenExpireMilliseconds);
 
         return Jwts.builder()
-                .subject(authentication.getName())
-                .claim(AUTHORITIES_KEY, authorities)
+                .subject(publicId.toString())
+                .claim(AUTHORITIES_KEY, roles)
                 .signWith(secretKey)
                 .issuedAt(now)
                 .expiration(expiresIn)
@@ -91,15 +97,23 @@ public class JwtProvider {
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
 
-        // 클레임에서 권한 정보 가져오기
-        Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
-                        .map(SimpleGrantedAuthority::new)
-                        .toList();
+        String roles = Optional.ofNullable(claims.get(AUTHORITIES_KEY))
+                .map(Object::toString)
+                .orElse("")
+                .trim();
+
+        List<GrantedAuthority> authorities =
+                StringUtils.hasText(roles)
+                        ? Arrays.stream(roles.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::hasText)
+                        .filter(a -> a.startsWith("ROLE_"))
+                        .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a))
+                        .toList()
+                        : List.of();
 
         // UserDetails 객체를 만들어서 Authentication 리턴
         UserDetails principal = new User(claims.getSubject(), "", authorities);
-
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 
@@ -109,5 +123,22 @@ public class JwtProvider {
 
     public Claims getClaims(String token) {
         return jwtParser.parseSignedClaims(token).getPayload();
+    }
+
+    private UUID extractPublicId(Authentication authentication) {
+        if (authentication == null) {
+            throw new IllegalStateException("Authentication is null");
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof UserDetailsImpl(com.example.api.entity.User user)) {
+            return user.getPublicId();
+        }
+
+        throw new IllegalStateException(
+                "Unsupported principal type: " + (principal == null ? "null" : principal.getClass().getName())
+                        + ", name=" + authentication.getName()
+        );
     }
 }
