@@ -42,7 +42,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 예외가 발생하지 않았다면, 토큰이 유효한 것이므로 인증 정보를 설정합니다.
                 Authentication authentication = jwtProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("SecurityContext에 '{}' 인증 정보를 저장했습니다. uri: {}", authentication.getName(), request.getRequestURI());
             } catch (ExpiredJwtException e) {
                 // 만료된 토큰 예외 처리
                 request.setAttribute(EXCEPTION_ATTRIBUTE_KEY, ErrorCode.TOKEN_EXPIRED);

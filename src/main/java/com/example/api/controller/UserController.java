@@ -1,14 +1,14 @@
 package com.example.api.controller;
 
+import com.example.api.annotation.CurrentUser;
 import com.example.api.dto.UserCreateRequest;
 import com.example.api.dto.UserResponse;
+import com.example.api.entity.User;
 import com.example.api.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -28,8 +28,8 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserDetails userDetails) {
-        UserResponse response = userService.me(userDetails.getUsername());
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    public ResponseEntity<UserResponse> myProfile(@CurrentUser User user) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(UserResponse.from(user));
     }
 }
