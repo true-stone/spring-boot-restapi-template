@@ -28,6 +28,18 @@ spring:
     resources:
       add-mappings: false # 정적 리소스 매핑을 비활성화 (404 No Found 핸들링)
 
+springdoc:
+  # request media type 의 기본 값
+  default-consumes-media-type: application/json
+  # response media type 의 기본 값
+  default-produces-media-type: application/json
+  swagger-ui:
+    # swagger-ui를 사용할 것인지 여부
+    enabled: true
+    # API문서를 사용할지 여부
+  api-docs:
+    enabled: true
+
 logging:
   level:
     root: info
