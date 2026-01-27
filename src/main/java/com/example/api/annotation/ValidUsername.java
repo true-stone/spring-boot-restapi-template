@@ -8,15 +8,21 @@ import jakarta.validation.constraints.Size;
 
 import java.lang.annotation.*;
 
+import static com.example.api.constants.ValidationConstants.*;
+
+/**
+ * 사용자 이름(로그인 ID)의 유효성을 검증하기 위한 커스텀 어노테이션.
+ * 여러 제약 조건을 조합하여 사용합니다.
+ */
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
 @Documented
-@NotBlank
-@Size(min = 4, max = 20)
+@NotBlank(message = "사용자 이름은 비워둘 수 없습니다.")
+@Size(min = USERNAME_MIN_LENGTH, max = USERNAME_MAX_LENGTH, message = "사용자 이름은 4자 이상 20자 이하여야 합니다.")
 @Pattern(
-        regexp = "^[a-zA-Z0-9_.]+$",
-        message = "username은 영문/숫자/._ 만 허용하며 공백은 허용되지 않습니다."
+        regexp = USERNAME_PATTERN,
+        message = "사용자 이름은 영문 소문자, 숫자, 밑줄(_), 점(.)만 사용할 수 있습니다."
 )
 public @interface ValidUsername {
     String message() default "유효하지 않은 사용자 이름입니다.";

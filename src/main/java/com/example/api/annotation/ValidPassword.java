@@ -8,15 +8,21 @@ import jakarta.validation.constraints.Size;
 
 import java.lang.annotation.*;
 
+import static com.example.api.constants.ValidationConstants.*;
+
+/**
+ * 사용자 암호(패스워드)의 유효성을 검증하기 위한 커스텀 어노테이션.
+ * 여러 제약 조건을 조합하여 사용합니다.
+ */
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = {})
 @Documented
 @NotBlank
-@Size(min = 8, max = 64)
+@Size(min = PASSWORD_MIN_LENGTH, max = PASSWORD_MAX_LENGTH)
 @Pattern(
-        regexp = "^(?!.*\\s).+$",
-        message = "password에는 공백을 포함할 수 없습니다."
+        regexp = PASSWORD_PATTERN,
+        message = "비밀번호는 영문 소문자, 대문자, 숫자, 특수문자를 포함해야 합니다."
 )
 public @interface ValidPassword {
     String message() default "유효하지 않은 비밀번호입니다.";
