@@ -39,6 +39,9 @@ dependencies {
     // UUIDv1~v7 생성 지원
     implementation "com.github.f4b6a3:uuid-creator:6.0.0"
 
+    // Swagger Docs 설정(Spring Boot Version 4 버전은 3버전 이상을 사용해야 한다.
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0'
+
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     annotationProcessor 'org.projectlombok:lombok'

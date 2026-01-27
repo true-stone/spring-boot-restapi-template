@@ -1,13 +1,12 @@
 package com.example.api.config;
 
+import com.example.api.filter.JwtAuthenticationFilter;
 import com.example.api.jwt.JwtAccessDeniedHandler;
 import com.example.api.jwt.JwtAuthenticationEntryPoint;
-import com.example.api.filter.JwtAuthenticationFilter;
-import com.example.api.security.PublicEndpoints;
+import com.example.api.security.PermitAllPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -50,17 +49,10 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
 
                 // 인가(Authorization) 정책
-                .authorizeHttpRequests(authorize -> authorize
-
-                        // 공개 엔드포인트 (상황에 맞게 조정)
-                        .requestMatchers(toH2Console(), toStaticResources().atCommonLocations()).permitAll()
-                        .requestMatchers(PublicEndpoints.COMMON).permitAll()
-                        .requestMatchers(PublicEndpoints.AUTH).permitAll()
-                        .requestMatchers(HttpMethod.POST, PublicEndpoints.USER).permitAll()
-
-                        // 그 외는 인증 필요
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(authorize -> {
+                    permitAllEndpoints(authorize);   // ✅ 공개 엔드포인트
+                    authorize.anyRequest().authenticated(); // 그 외는 인증 필요
+                })
 
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
@@ -87,6 +79,25 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    private void permitAllEndpoints(
+            org.springframework.security.config.annotation.web.configurers
+                    .AuthorizeHttpRequestsConfigurer<HttpSecurity>
+                    .AuthorizationManagerRequestMatcherRegistry authorize
+    ) {
+        // 정적 리소스 / H2
+        authorize.requestMatchers(toH2Console(), toStaticResources().atCommonLocations()).permitAll();
+
+        // Swagger / Common / Auth
+        authorize.requestMatchers(PermitAllPolicy.swaggerPaths()).permitAll();
+        authorize.requestMatchers(PermitAllPolicy.commonPaths()).permitAll();
+        authorize.requestMatchers(PermitAllPolicy.authPaths()).permitAll();
+
+        // Method + Path 조합
+        for (PermitAllPolicy.MethodAndPath mp : PermitAllPolicy.userSignUp()) {
+            authorize.requestMatchers(mp.method(), mp.path()).permitAll();
+        }
     }
 
 }
