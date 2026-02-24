@@ -11,6 +11,7 @@ import java.util.Optional;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
+@Schema(name = "ErrorResponse", description = "에러 응답 형식")
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
@@ -65,6 +66,7 @@ public class ErrorResponse {
         return new ErrorResponse(errorCode, errors);
     }
 
+    @Schema(name = "ErrorResponse.FieldError", description = "필드 유효성 검증 오류 상세")
     public record FieldError(
             @Schema(
                     description = "필드 이름",

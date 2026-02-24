@@ -1,16 +1,13 @@
 package com.example.api.controller;
 
-import com.example.api.dto.ErrorResponse;
+import com.example.api.annotation.ApiErrorCodeExample;
 import com.example.api.dto.LoginRequest;
 import com.example.api.dto.LoginResponse;
+import com.example.api.exception.ErrorCode;
 import com.example.api.jwt.JwtProvider;
 import com.example.api.service.AuthService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.NonNull;
@@ -34,11 +31,11 @@ public class AuthController {
     private final AuthService authService;
 
     @Operation(summary = "사용자 로그인", description = "아이디와 비밀번호를 사용하여 로그인하고, JWT 토큰을 발급받습니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "로그인 성공",
-                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
-            @ApiResponse(responseCode = "401", description = "인증 실패 (아이디/비밀번호 불일치, 계정 상태 비정상 등)",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiErrorCodeExample({
+            ErrorCode.INVALID_INPUT_VALUE,
+            ErrorCode.INVALID_CREDENTIALS,
+            ErrorCode.ACCOUNT_DISABLED,
+            ErrorCode.ACCOUNT_LOCKED
     })
     @PostMapping("/login")
     public ResponseEntity<@NonNull LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
