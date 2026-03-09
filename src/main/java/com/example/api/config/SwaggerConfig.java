@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -99,10 +100,22 @@ public class SwaggerConfig {
     }
 
     private Example createExample(ErrorCode errorCode) {
-        ErrorResponse errorResponse = ErrorResponse.of(errorCode);
+//        ErrorResponse errorResponse = ErrorResponse.of(errorCode);
+//        Example example = new Example();
+//        example.setSummary(errorCode.getMessage());
+//        example.setValue(errorResponse);
+//        return example;
+
+        Map<String, Object> exampleBody = new LinkedHashMap<>();
+        exampleBody.put("createdAt", "2026-03-10T10:30:12");
+        exampleBody.put("requestId", "a1b2c3d4");
+        exampleBody.put("status", errorCode.getStatus().value());
+        exampleBody.put("message", errorCode.getMessage());
+        exampleBody.put("code", errorCode.getCode());
+
         Example example = new Example();
         example.setSummary(errorCode.getMessage());
-        example.setValue(errorResponse);
+        example.setValue(exampleBody);
         return example;
     }
 

@@ -34,7 +34,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             errorCode = ErrorCode.INVALID_TOKEN;
         }
 
-        ErrorResponse errorResponse = ErrorResponse.of(errorCode);
+        ErrorResponse errorResponse = ErrorResponse.of(request, errorCode);
 
         response.setStatus(errorResponse.getStatus());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

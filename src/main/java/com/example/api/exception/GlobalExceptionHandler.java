@@ -29,6 +29,17 @@ import java.util.Optional;
 /**
  * 애플리케이션 전역에서 발생하는 예외를 처리하는 클래스입니다.
  * ResponseEntityExceptionHandler를 상속받아 Spring MVC의 기본 예외 처리 기능을 확장합니다.
+ *
+ * <p><b>로그 레벨 규칙:</b></p>
+ * <ul>
+ *   <li>{@code debug} + isDebugEnabled() 가드 : 400/404/405/415 클라이언트 오류</li>
+ *   <li>{@code warn}  (가드 없음)              : 401 인증 실패, BusinessException</li>
+ *   <li>{@code error} (가드 없음)              : 500 서버 내부 오류</li>
+ * </ul>
+ *
+ * <p><b>로그 포맷 규칙:</b></p>
+ * <pre>event={snake_case} method={} path={} status={} code={} [추가 필드...]</pre>
+ * key=value 공백 구분, 필드명 snake_case 통일
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -49,17 +60,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         .toList();
 
         if (log.isDebugEnabled()) {
-            log.debug("validation_failed path={} method={} errorCode={} fieldErrors={}",
-                    extractPath(request),
+            log.debug("event=validation_failed method={} path={} status={} code={} fields={}",
                     extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.BAD_REQUEST.value(),
                     ErrorCode.INVALID_INPUT_VALUE.getCode(),
-                    fieldErrors.stream()
-                            .map(fe -> fe.field() + ":" + fe.reason()) // 예: record에 field/reason이 있다고 가정
-                            .toList()
+                    fieldErrors.stream().map(fe -> fe.field() + ":" + fe.reason()).toList()
             );
         }
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, fieldErrors);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.INVALID_INPUT_VALUE, fieldErrors);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -71,10 +81,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected @Nullable ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Invalid HTTP request body for request [{}]: {}", request.getDescription(false), ex.getMessage());
+            log.debug("event=message_not_readable method={} path={} status={} code={}",
+                    extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.BAD_REQUEST.value(),
+                    ErrorCode.INVALID_INPUT_VALUE.getCode()
+            );
         }
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, "요청 본문의 형식이 잘못되었거나 비어있습니다.");
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.INVALID_INPUT_VALUE, "요청 본문의 형식이 잘못되었거나 비어있습니다.");
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -84,29 +99,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected @Nullable ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        if (log.isDebugEnabled()) {
-            String method = null;
-            String uri = null;
-
-            if (request instanceof ServletWebRequest swr) {
-                method = swr.getHttpMethod() != null ? swr.getHttpMethod().name() : null;
-                uri = swr.getRequest().getRequestURI();
-            }
-
-            String param = ex.getPropertyName();
-            Object valueObj = ex.getValue();
-            String value = valueObj == null ? "null" : String.valueOf(valueObj);
-            if (value.length() > 200) { // 과도한 길이 방지
-                value = value.substring(0, 200) + "...";
-            }
-
-            String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
-
-            log.debug("Type mismatch [{} {}] | param={} | value={} | requiredType={} | msg={}",
-                    method, uri, param, value, requiredType, ex.getMessage(), ex);
-        }
-
         String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+        String value = ex.getValue() == null ? "null" : truncate(String.valueOf(ex.getValue()), 200);
+
+        if (log.isDebugEnabled()) {
+            log.debug("event=type_mismatch method={} path={} status={} code={} param={} value={} required_type={}",
+                    extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.BAD_REQUEST.value(),
+                    ErrorCode.INVALID_INPUT_VALUE.getCode(),
+                    ex.getPropertyName(),
+                    value,
+                    requiredType
+            );
+        }
 
         String detail = String.format(
                 "파라미터 '%s'에 잘못된 타입의 값('%s')이 입력되었습니다. (필요한 타입: '%s')",
@@ -115,7 +121,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 requiredType
         );
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, detail);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.INVALID_INPUT_VALUE, detail);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -125,31 +131,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected @Nullable ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         if (log.isDebugEnabled()) {
-            String method = null;
-            String uri = null;
-            String query = null;
-
-            if (request instanceof ServletWebRequest swr) {
-                var httpReq = swr.getRequest();
-                method = httpReq.getMethod();
-                uri = httpReq.getRequestURI();
-                query = httpReq.getQueryString();
-            }
-
-            // query는 길어질 수 있어 제한 (로그 오염 방지)
-            if (query != null && query.length() > 300) {
-                query = query.substring(0, 300) + "...";
-            }
-
-            log.debug(
-                    "Missing required parameter [{} {}] | param={} | requiredType={} | query={} | msg={}",
-                    method,
-                    uri,
+            log.debug("event=missing_param method={} path={} status={} code={} param={} param_type={} query={}",
+                    extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.BAD_REQUEST.value(),
+                    ErrorCode.INVALID_INPUT_VALUE.getCode(),
                     ex.getParameterName(),
                     ex.getParameterType(),
-                    query,
-                    ex.getMessage(),
-                    ex // 필요 시 스택트레이스
+                    extractQuery(request)
             );
         }
 
@@ -159,7 +148,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 ex.getParameterType()
         );
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, detail);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.INVALID_INPUT_VALUE, detail);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -185,17 +174,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         .toList();
 
         if (log.isDebugEnabled()) {
-            log.debug(
-                    "handler_method_validation_failed path={} method={} fieldErrors={}",
-                    extractPath(request),
+            log.debug("event=handler_validation_failed method={} path={} status={} code={} fields={}",
                     extractMethod(request),
-                    fieldErrors.stream()
-                            .map(fe -> fe.field() + ":" + fe.reason())
-                            .toList()
+                    extractPath(request),
+                    HttpStatus.BAD_REQUEST.value(),
+                    ErrorCode.INVALID_INPUT_VALUE.getCode(),
+                    fieldErrors.stream().map(fe -> fe.field() + ":" + fe.reason()).toList()
             );
         }
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, fieldErrors);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.INVALID_INPUT_VALUE, fieldErrors);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -205,37 +193,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected @Nullable ResponseEntity<Object> handleNoHandlerFoundException(NoHandlerFoundException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         if (log.isDebugEnabled()) {
-            String method = null;
-            String uri = null;
-            String query = null;
-
-            if (request instanceof ServletWebRequest swr) {
-                var httpReq = swr.getRequest();
-                method = httpReq.getMethod();
-                uri = httpReq.getRequestURI();
-                query = httpReq.getQueryString();
-            }
-
-            if (query != null && query.length() > 300) {
-                query = query.substring(0, 300) + "...";
-            }
-
-            // NoHandlerFoundException 자체에도 method/url이 있으니 우선 사용
-            String exMethod = ex.getHttpMethod();
-            String exUrl = ex.getRequestURL();
-
-            log.debug(
-                    "No handler found [{} {}] | exMethod={} | exUrl={} | query={} | msg={}",
-                    method,
-                    uri,
-                    exMethod,
-                    exUrl,
-                    query,
-                    ex.getMessage()
+            log.debug("event=endpoint_not_found method={} path={} status={} code={} query={}",
+                    extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.NOT_FOUND.value(),
+                    ErrorCode.ENDPOINT_NOT_FOUND.getCode(),
+                    extractQuery(request)
             );
         }
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.ENDPOINT_NOT_FOUND);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.ENDPOINT_NOT_FOUND);
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
@@ -244,7 +211,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected @Nullable ResponseEntity<Object> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        log.debug("Unsupported HTTP method for request [{} {}]: {}", ex.getMethod(), request.getDescription(false), ex.getMessage());
+        if (log.isDebugEnabled()) {
+            log.debug("event=method_not_allowed method={} path={} status={} code={} supported={}",
+                    extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.METHOD_NOT_ALLOWED.value(),
+                    ErrorCode.METHOD_NOT_ALLOWED.getCode(),
+                    ex.getSupportedHttpMethods()
+            );
+        }
 
         headers.setAllow(ex.getSupportedHttpMethods());
 
@@ -252,7 +227,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 ex.getMethod(),
                 ex.getSupportedHttpMethods());
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.METHOD_NOT_ALLOWED, detail);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.METHOD_NOT_ALLOWED, detail);
         return new ResponseEntity<>(response, headers, HttpStatus.METHOD_NOT_ALLOWED);
     }
 
@@ -261,13 +236,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected @Nullable ResponseEntity<Object> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        log.debug("Unsupported media type for request [{}]: {}", request.getDescription(false), ex.getContentType());
+        if (log.isDebugEnabled()) {
+            log.debug("event=unsupported_media_type method={} path={} status={} code={} content_type={}",
+                    extractMethod(request),
+                    extractPath(request),
+                    HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
+                    ErrorCode.UNSUPPORTED_MEDIA_TYPE.getCode(),
+                    ex.getContentType()
+            );
+        }
 
         String detail = String.format("지원하지 않는 미디어 타입('%s')입니다. ('%s' 타입으로 요청해주세요.)",
                 ex.getContentType(),
                 ex.getSupportedMediaTypes());
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.UNSUPPORTED_MEDIA_TYPE, detail);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.UNSUPPORTED_MEDIA_TYPE, detail);
         return new ResponseEntity<>(response, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
@@ -277,26 +260,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuth(AuthenticationException ex, HttpServletRequest request) {
-
-        if (log.isDebugEnabled()) {
-            Throwable cause = ex.getCause();
-
-            String causePart = (cause != null)
-                    ? String.format(" | cause=%s : %s",
-                    cause.getClass().getSimpleName(),
-                    cause.getMessage())
-                    : "";
-
-            log.debug(
-                    "Auth failed [{} {}] | ex={} | msg={}{}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    ex.getClass().getSimpleName(),
-                    ex.getMessage(),
-                    causePart,
-                    ex
-            );
-        }
 
         ErrorCode errorCode = switch (ex) {
             case UsernameNotFoundException e -> ErrorCode.INVALID_CREDENTIALS;
@@ -308,8 +271,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             default -> ErrorCode.AUTHENTICATION_FAILED;
         };
 
+        log.warn("event=auth_failed method={} path={} status={} code={} exception={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                HttpStatus.UNAUTHORIZED.value(),
+                errorCode.getCode(),
+                ex.getClass().getSimpleName()
+        );
+
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(errorCode));
+                .body(ErrorResponse.of(request, errorCode));
     }
 
     /**
@@ -320,23 +291,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex, HttpServletRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
 
-        if (log.isDebugEnabled()) {
-            if (errorCode.getStatus().is5xxServerError()) {
-                log.error("Business exception occurred for request [{} {}]: {}",
-                        request.getMethod(),
-                        request.getRequestURI(),
-                        errorCode.getMessage(),
-                        ex);
-            } else {
-                log.debug("Business exception occurred for request [{} {}]: {}",
-                        request.getMethod(),
-                        request.getRequestURI(),
-                        errorCode.getMessage());
-            }
-        }
+        log.warn("event=business_exception method={} path={} status={} code={} exception={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                errorCode.getStatus().value(),
+                errorCode.getCode(),
+                ex.getClass().getSimpleName()
+        );
 
-        final ErrorResponse response = ErrorResponse.of(errorCode);
-        return new ResponseEntity<>(response, errorCode.getStatus());
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(ErrorResponse.of(request, errorCode));
     }
 
     /**
@@ -345,20 +310,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, HttpServletRequest request) {
-        log.error("An unexpected error occurred for request [{} {}]: {}",
+        log.error("event=unexpected_error method={} path={} status={} code={} exception={} message={}",
                 request.getMethod(),
                 request.getRequestURI(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                ex.getClass().getSimpleName(),
                 ex.getMessage(),
-                ex);
+                ex
+        );
 
-        final ErrorResponse response = ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR);
+        final ErrorResponse response = ErrorResponse.of(request, ErrorCode.INTERNAL_SERVER_ERROR);
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private static String extractPath(WebRequest request) {
         if (request instanceof ServletWebRequest swr) {
-            HttpServletRequest req = swr.getRequest();
-            return req.getRequestURI();
+            return swr.getRequest().getRequestURI();
         }
         return "N/A";
     }
@@ -370,6 +338,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                     .orElse("N/A");
         }
         return "N/A";
+    }
+
+    private static String extractQuery(WebRequest request) {
+        if (request instanceof ServletWebRequest swr) {
+            return truncate(swr.getRequest().getQueryString(), 300);
+        }
+        return null;
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null) return null;
+        return value.length() > maxLength ? value.substring(0, maxLength) + "..." : value;
     }
 
     private static String extractRejectedValue(Object error) {

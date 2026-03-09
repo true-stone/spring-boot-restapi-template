@@ -1,7 +1,7 @@
 package com.example.api.config;
 
+import com.example.api.filter.HttpLoggingFilter;
 import com.example.api.filter.JwtAuthenticationFilter;
-import com.example.api.filter.LoggingFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
 public class SecurityFilterRegistrationConfig {
 
     @Bean
-    public FilterRegistrationBean<LoggingFilter> loggingFilterRegistration(LoggingFilter filter) {
+    public FilterRegistrationBean<HttpLoggingFilter> loggingFilterRegistration(HttpLoggingFilter filter) {
         var bean = new FilterRegistrationBean<>(filter);
         bean.setEnabled(false);
         return bean;

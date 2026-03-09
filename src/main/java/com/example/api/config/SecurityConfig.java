@@ -1,5 +1,6 @@
 package com.example.api.config;
 
+import com.example.api.filter.HttpLoggingFilter;
 import com.example.api.filter.JwtAuthenticationFilter;
 import com.example.api.filter.LoggingFilter;
 import com.example.api.jwt.JwtAccessDeniedHandler;
@@ -32,7 +33,7 @@ import static org.springframework.boot.security.autoconfigure.web.servlet.PathRe
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final LoggingFilter loggingFilter;
+    private final HttpLoggingFilter httpLoggingFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
@@ -76,8 +77,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
 
-                .addFilterBefore(loggingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(jwtAuthenticationFilter, LoggingFilter.class)
+                .addFilterBefore(httpLoggingFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(jwtAuthenticationFilter, HttpLoggingFilter.class)
         ;
 
 

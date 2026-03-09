@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds">
+
+    <!-- 기본 Spring Boot 로그 설정 포함 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){faint} %clr(%logger{36}){cyan} %clr([requestId=%X{requestId}]){yellow} - %msg%n"/>
+
+    <!-- 콘솔 출력용 Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 패턴에 springProfile을 추가하여 어떤 프로필에서 찍힌 로그인지 확인 -->
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 기본 로그 레벨 설정 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- "local" 또는 "dev" 프로필이 활성화되었을 때 적용되는 설정 -->
+    <springProfile name="local | dev">
+        <!-- LoggingFilter에 대해서만 DEBUG 레벨로 설정 -->
+        <logger name="com.example.api.filter.HttpLoggingFilter" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
+
+    <!-- "prod" 프로필이 활성화되었을 때 적용되는 설정 -->
+    <springProfile name="prod">
+        <!-- 운영 환경에서는 LoggingFilter의 로그 레벨을 INFO로 유지 (별도 설정 없음) -->
+        <!-- 필요하다면 파일로 로그를 남기는 Appender를 여기에 추가할 수 있습니다. -->
+    </springProfile>
+
+</configuration>
