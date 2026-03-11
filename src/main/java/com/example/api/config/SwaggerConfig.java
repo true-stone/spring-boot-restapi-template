@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 @Configuration
 public class SwaggerConfig {
 
+    private static final String JWT_SCHEME_NAME = "bearerAuth";
+
     @Bean
     public OpenAPI openAPI() {
         Info info = new Info()
@@ -36,8 +38,7 @@ public class SwaggerConfig {
                 .description("Spring Boot API Template Project")
                 .version("v1.0.0");
 
-        String jwtSchemeName = "bearerAuth";
-        SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwtSchemeName);
+        SecurityRequirement securityRequirement = new SecurityRequirement().addList(JWT_SCHEME_NAME);
 
         // ErrorResponse 클래스를 분석하여 Schema 객체를 생성
         Schema<?> errorResponseSchema = ModelConverters.getInstance()
@@ -48,10 +49,10 @@ public class SwaggerConfig {
                 .schema;
 
         Components components = new Components()
-                .addSchemas(ErrorResponse.class.getName(), errorResponseSchema)
-                .addSchemas(ErrorResponse.FieldError.class.getName(), fieldErrorSchema) // 생성된 스키마를 전역 Components에 등록
-                .addSecuritySchemes(jwtSchemeName, new SecurityScheme()
-                        .name(jwtSchemeName)
+                .addSchemas(ErrorResponse.class.getSimpleName(), errorResponseSchema)
+                .addSchemas(ErrorResponse.FieldError.class.getSimpleName(), fieldErrorSchema) // 생성된 스키마를 전역 Components에 등록
+                .addSecuritySchemes(JWT_SCHEME_NAME, new SecurityScheme()
+                        .name(JWT_SCHEME_NAME)
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
@@ -85,7 +86,7 @@ public class SwaggerConfig {
 
             // MediaType 객체 생성 및 Schema 설정
             MediaType mediaType = new MediaType();
-            mediaType.setSchema(new Schema<>().$ref(ErrorResponse.class.getName()));
+            mediaType.setSchema(new Schema<>().$ref(ErrorResponse.class.getSimpleName()));
             Content content = new Content().addMediaType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE, mediaType);
             response.setContent(content);
 
