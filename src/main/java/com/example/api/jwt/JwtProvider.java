@@ -76,7 +76,7 @@ public class JwtProvider {
         // 권한
         String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .filter(a -> a != null && a.startsWith("ROLE_"))   // ✅ 핵심
+                .filter(a -> a != null && a.startsWith("ROLE_"))
                 .distinct()
                 .sorted()
                 .collect(Collectors.joining(","));
@@ -119,6 +119,10 @@ public class JwtProvider {
 
     public long getAccessTokenExpireSeconds() {
         return accessTokenExpireMilliseconds / 1000L;
+    }
+
+    public long getRefreshTokenExpireSeconds() {
+        return refreshTokenExpireMilliseconds / 1000L;
     }
 
     public Claims getClaims(String token) {

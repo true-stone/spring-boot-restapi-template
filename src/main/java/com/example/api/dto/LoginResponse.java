@@ -17,6 +17,13 @@ public record LoginResponse(
         String accessToken,
 
         @Schema(
+                description = "발급된 리프레시 토큰",
+                example = "550e8400-e29b-41d4",
+                requiredMode = REQUIRED
+        )
+        String refreshToken,
+
+        @Schema(
                 description = "토큰 타입",
                 example = "Bearer",
                 requiredMode = REQUIRED)

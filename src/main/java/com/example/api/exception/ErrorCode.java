@@ -28,6 +28,7 @@ public enum ErrorCode {
     /** 토큰이 없거나, 서명 오류 등 포괄적 의미 */
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A004", "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "A005", "만료된 토큰입니다."),
+    REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "A010", "리프레시 토큰이 만료되었거나 찾을 수 없습니다."),
 
     ACCOUNT_DISABLED(HttpStatus.UNAUTHORIZED, "A006", "비활성화된 계정입니다."),
     ACCOUNT_LOCKED(HttpStatus.UNAUTHORIZED, "A007", "잠긴 계정입니다. 관리자에게 문의하세요."),
