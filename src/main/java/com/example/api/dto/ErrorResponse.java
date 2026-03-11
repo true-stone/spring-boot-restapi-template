@@ -86,6 +86,11 @@ public class ErrorResponse {
         this(resolveRequestedAt(request), resolveRequestId(request), errorCode, null, errors);
     }
 
+    /** Swagger 예제 등 실제 요청 컨텍스트 없이 ErrorCode만으로 생성할 때 사용 */
+    public static ErrorResponse of(ErrorCode errorCode) {
+        return new ErrorResponse(LocalDateTime.now(SEOUL_ZONE_ID), "a1b2c3d4", errorCode, null, null);
+    }
+
     public static ErrorResponse of(HttpServletRequest request, ErrorCode errorCode) {
         return new ErrorResponse(request, errorCode);
     }

@@ -22,7 +22,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,8 +48,8 @@ public class SwaggerConfig {
                 .schema;
 
         Components components = new Components()
-                .addSchemas("ErrorResponse", errorResponseSchema)
-                .addSchemas("ErrorResponse.FieldError", fieldErrorSchema) // 생성된 스키마를 전역 Components에 등록
+                .addSchemas(ErrorResponse.class.getName(), errorResponseSchema)
+                .addSchemas(ErrorResponse.FieldError.class.getName(), fieldErrorSchema) // 생성된 스키마를 전역 Components에 등록
                 .addSecuritySchemes(jwtSchemeName, new SecurityScheme()
                         .name(jwtSchemeName)
                         .type(SecurityScheme.Type.HTTP)
@@ -86,7 +85,7 @@ public class SwaggerConfig {
 
             // MediaType 객체 생성 및 Schema 설정
             MediaType mediaType = new MediaType();
-            mediaType.setSchema(new Schema<>().$ref("ErrorResponse"));
+            mediaType.setSchema(new Schema<>().$ref(ErrorResponse.class.getName()));
             Content content = new Content().addMediaType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE, mediaType);
             response.setContent(content);
 
@@ -100,22 +99,9 @@ public class SwaggerConfig {
     }
 
     private Example createExample(ErrorCode errorCode) {
-//        ErrorResponse errorResponse = ErrorResponse.of(errorCode);
-//        Example example = new Example();
-//        example.setSummary(errorCode.getMessage());
-//        example.setValue(errorResponse);
-//        return example;
-
-        Map<String, Object> exampleBody = new LinkedHashMap<>();
-        exampleBody.put("createdAt", "2026-03-10T10:30:12");
-        exampleBody.put("requestId", "a1b2c3d4");
-        exampleBody.put("status", errorCode.getStatus().value());
-        exampleBody.put("message", errorCode.getMessage());
-        exampleBody.put("code", errorCode.getCode());
-
         Example example = new Example();
         example.setSummary(errorCode.getMessage());
-        example.setValue(exampleBody);
+        example.setValue(ErrorResponse.of(errorCode));
         return example;
     }
 
