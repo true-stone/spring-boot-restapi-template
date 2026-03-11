@@ -40,6 +40,9 @@ dependencies {
     // UUIDv1~v7 생성 지원
     implementation "com.github.f4b6a3:uuid-creator:6.0.0"
 
+    // .env 파일 로드 지원
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
     // Swagger Docs 설정(Spring Boot Version 4 버전은 3버전 이상을 사용해야 한다.
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0'
 

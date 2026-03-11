@@ -25,16 +25,23 @@
 
     <!-- "local" 또는 "dev" 프로필이 활성화되었을 때 적용되는 설정 -->
     <springProfile name="local | dev">
-        <!-- LoggingFilter에 대해서만 DEBUG 레벨로 설정 -->
-        <logger name="com.example.api.filter.HttpLoggingFilter" level="DEBUG" additivity="false">
+        <!-- TODO: p6spy 로그로 예정 -->
+        <logger name="com.example.api" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <logger name="com.zaxxer.hikari" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE"/>
         </logger>
     </springProfile>
 
-    <!-- "prod" 프로필이 활성화되었을 때 적용되는 설정 -->
-    <springProfile name="prod">
-        <!-- 운영 환경에서는 LoggingFilter의 로그 레벨을 INFO로 유지 (별도 설정 없음) -->
-        <!-- 필요하다면 파일로 로그를 남기는 Appender를 여기에 추가할 수 있습니다. -->
+    <!-- "stg" 또는 "prd" 프로필이 활성화되었을 때 적용되는 설정 -->
+    <springProfile name="stg | prd">
     </springProfile>
 
 </configuration>

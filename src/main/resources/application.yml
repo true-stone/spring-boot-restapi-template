@@ -2,19 +2,10 @@ server:
   port: 8080
 
 spring:
+  profiles:
+    default: local
   application:
     name: spring-boot-api-template
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
 
   jpa:
     open-in-view: false
@@ -28,25 +19,6 @@ spring:
     resources:
       add-mappings: false # 정적 리소스 매핑을 비활성화 (404 No Found 핸들링)
 
-springdoc:
-  # request media type 의 기본 값
-  default-consumes-media-type: application/json
-  # response media type 의 기본 값
-  default-produces-media-type: application/json
-  swagger-ui:
-    # swagger-ui를 사용할 것인지 여부
-    enabled: true
-    # API문서를 사용할지 여부
-  api-docs:
-    enabled: true
-
 logging:
-  level:
-    root: info
-    com.example.api: debug
-
-jwt:
-  # Base64로 인코딩된 시크릿 키
-  secret-key: i2zLpRJJoYQASmbgAzcAvLTUczmcsv45Zu3rMtkWbKtvafvH3vvnrWwhcOFGg9SfEmEWPWlOQ71qPkf6Q9CGPw==
-  access-token-expire-seconds: 86400
-  refresh-token-expire-seconds: 604800
+  file:
+    path: ./logs
