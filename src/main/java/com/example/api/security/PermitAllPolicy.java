@@ -1,17 +1,14 @@
 package com.example.api.security;
 
+import lombok.NoArgsConstructor;
 import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
+@NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class PermitAllPolicy {
 
-    private PermitAllPolicy() {
-        // 유틸리티 클래스: 인스턴스화 방지
-        throw new UnsupportedOperationException("Utility class");
-    }
-
-    private static final String API_V1 = "/api/v1";
+    private static final String API_PREFIX = "/api/*";
 
     /**
      * Swagger/OpenAPI
@@ -32,14 +29,14 @@ public final class PermitAllPolicy {
      * Auth 공개 API
      */
     private static final List<String> AUTH = List.of(
-            API_V1 + "/auth/**"
+            API_PREFIX + "/auth/**"
     );
 
     /**
-     * 회원가입(POST /api/v1/users)
+     * 회원가입(POST /api/{version}/users)
      */
     private static final List<MethodAndPath> USER_SIGN_UP = List.of(
-            MethodAndPath.of(HttpMethod.POST, API_V1 + "/users")
+            MethodAndPath.of(HttpMethod.POST, API_PREFIX + "/users")
     );
 
     public static String[] swaggerPaths() {
