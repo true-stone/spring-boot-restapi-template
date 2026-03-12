@@ -148,7 +148,9 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
     }
 
     private String buildRequestUri(HttpServletRequest request) {
-        return request.getRequestURI();
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString();
+        return queryString != null ? uri + "?" + queryString : uri;
     }
 
     private ContentCachingRequestWrapper wrapRequest(HttpServletRequest request) {
