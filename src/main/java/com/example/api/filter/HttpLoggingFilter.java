@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.example.api.filter.logging.RequestContextConstants.*;
@@ -32,6 +33,10 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
 
     private static final int REQUEST_BODY_MAX_BYTES = 10_240;
     private static final int BODY_LOG_MAX_CHARS = 2_000;
+
+    private static final Set<String> LOGGED_HEADERS = Set.of(
+            "content-type", "accept", "user-agent", "origin", "authorization"
+    );
 
     private static final DateTimeFormatter TS_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("Asia/Seoul"));
@@ -106,8 +111,12 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
                             .append(" clientIp=").append(clientIp);
 
                     if (status >= 400) {
-                        sb.append(" reqBody=").append(readBody(req.getContentAsByteArray(), req.getContentType()))
-                                .append(" resBody=").append(readBody(res.getContentAsByteArray(), res.getContentType()));
+                        sb.append(" headers=").append(readHeaders(req));
+                        String reqBody = readBody(req.getContentAsByteArray(), req.getContentType());
+                        if (!reqBody.isEmpty()) {
+                            sb.append(" reqBody=").append(reqBody);
+                        }
+                        sb.append(" resBody=").append(readBody(res.getContentAsByteArray(), res.getContentType()));
                     }
 
                     String line = sb.toString();
@@ -151,6 +160,25 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         String queryString = request.getQueryString();
         return queryString != null ? uri + "?" + queryString : uri;
+    }
+
+    private String readHeaders(HttpServletRequest request) {
+        StringBuilder sb = new StringBuilder("{");
+        LOGGED_HEADERS.forEach(name -> {
+            String value = request.getHeader(name);
+            if (value != null) {
+                if (sb.length() > 1) sb.append(", ");
+                sb.append(name).append("=").append(maskHeader(name, value));
+            }
+        });
+        return sb.append("}").toString();
+    }
+
+    private String maskHeader(String name, String value) {
+        if ("authorization".equals(name) && value.toLowerCase().startsWith("bearer ")) {
+            return "Bearer ***";
+        }
+        return value;
     }
 
     private ContentCachingRequestWrapper wrapRequest(HttpServletRequest request) {
