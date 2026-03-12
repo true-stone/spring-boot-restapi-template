@@ -1,6 +1,8 @@
 package com.example.api.service;
 
+import com.example.api.dto.PageResponse;
 import com.example.api.dto.UserCreateRequest;
+import com.example.api.dto.UserPageParam;
 import com.example.api.dto.UserResponse;
 import com.example.api.entity.User;
 import com.example.api.exception.BusinessException;
@@ -41,10 +43,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public UserResponse readMyProfile(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        return UserResponse.from(user);
+    public PageResponse<UserResponse> readUsers(UserPageParam pageParam) {
+        return PageResponse.from(userRepository.findAll(pageParam.toPageable()).map(UserResponse::from));
     }
 }

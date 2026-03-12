@@ -2,7 +2,9 @@ package com.example.api.controller;
 
 import com.example.api.annotation.ApiErrorCodeExample;
 import com.example.api.annotation.CurrentUser;
+import com.example.api.dto.PageResponse;
 import com.example.api.dto.UserCreateRequest;
+import com.example.api.dto.UserPageParam;
 import com.example.api.dto.UserResponse;
 import com.example.api.entity.User;
 import com.example.api.exception.ErrorCode;
@@ -14,8 +16,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -59,5 +63,24 @@ public class UserController {
     public ResponseEntity<UserResponse> myProfile(@Parameter(hidden = true) @CurrentUser User user) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(UserResponse.from(user));
+    }
+
+    @Operation(
+            summary = "사용자 목록 조회 (관리자)",
+            description = "전체 사용자 목록을 페이지네이션으로 조회합니다. ADMIN 권한이 필요합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공")
+    })
+    @ApiErrorCodeExample({
+            ErrorCode.INVALID_TOKEN,
+            ErrorCode.ACCESS_DENIED
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<PageResponse<UserResponse>> readUsers(
+            @ParameterObject @Valid UserPageParam pageParam
+    ) {
+        return ResponseEntity.ok(userService.readUsers(pageParam));
     }
 }

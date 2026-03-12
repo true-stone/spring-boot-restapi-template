@@ -8,6 +8,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -66,6 +68,7 @@ public class User extends BaseTime {
      * </pre>
      */
     @Getter(AccessLevel.NONE)
+    @Fetch(FetchMode.SUBSELECT)
     @ElementCollection(fetch = FetchType.EAGER) // 권한은 보통 즉시 로딩
     @CollectionTable(
             name = "user_roles",

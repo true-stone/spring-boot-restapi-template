@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
@@ -40,11 +40,11 @@ public record UserResponse(
         )
         String email,
         @Schema(
-                description = "사용자 권한",
-                example = "ROLE_USER",
+                description = "사용자 권한 목록",
+                example = "[\"ROLE_USER\"]",
                 requiredMode = REQUIRED
         )
-        String role,
+        Set<String> roles,
         @Schema(
                 description = "계정 생성 일시",
                 example = "2023-07-20T12:34:56",
@@ -53,19 +53,16 @@ public record UserResponse(
         LocalDateTime createDate
 ) {
     public static UserResponse from(User user) {
-        String userRoles = Optional.ofNullable(user.getRoles())
-                .filter(roles -> !roles.isEmpty())
-                .map(roles -> roles.stream()
-                        .map(UserRole::authority)
-                        .collect(Collectors.joining(",")))
-                .orElse("");
+        Set<String> userRoles = user.getRoles().stream()
+                .map(UserRole::authority)
+                .collect(Collectors.toSet());
 
         return UserResponse.builder()
                 .id(user.getPublicId().toString())
                 .username(user.getUsername())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(userRoles)
+                .roles(userRoles)
                 .createDate(user.getCreateDate())
                 .build();
     }
