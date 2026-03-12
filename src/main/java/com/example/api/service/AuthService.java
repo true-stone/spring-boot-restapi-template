@@ -39,7 +39,7 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String refreshToken = issueRefreshToken(userDetails.user().getId());
+        String refreshToken = issueRefreshToken(userDetails.user().getPublicId());
 
         return new LoginResponse(
                 accessToken,
@@ -58,12 +58,12 @@ public class AuthService {
             throw new BusinessException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        User user = userRepository.findById(stored.userId())
+        User user = userRepository.findByPublicId(stored.publicId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 토큰 로테이션: 기존 삭제 후 신규 발급
         refreshTokenStore.deleteByToken(refreshToken);
-        String newRefreshToken = issueRefreshToken(user.getId());
+        String newRefreshToken = issueRefreshToken(user.getPublicId());
 
         UserDetailsImpl userDetails = new UserDetailsImpl(user);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -81,32 +81,15 @@ public class AuthService {
         refreshTokenStore.deleteByToken(refreshToken);
     }
 
-    private Long extractUserId(Authentication authentication) {
-        if (authentication == null) {
-            throw new IllegalStateException("Authentication result is null.");
-        }
-
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof UserDetailsImpl userDetails)) {
-            throw new IllegalStateException("Authentication principal is invalid.");
-        }
-
-        if (userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new IllegalStateException("Authenticated user id is missing.");
-        }
-
-        return userDetails.user().getId();
-    }
-
     @Transactional
-    public void logoutAll(Long userId) {
-        refreshTokenStore.deleteByUserId(userId);
+    public void logoutAll(UUID publicId) {
+        refreshTokenStore.deleteByPublicId(publicId);
     }
 
-    private String issueRefreshToken(Long userId) {
+    private String issueRefreshToken(UUID publicId) {
         String token = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plusSeconds(jwtProvider.getRefreshTokenExpireSeconds());
-        refreshTokenStore.save(token, userId, expiresAt);
+        refreshTokenStore.save(token, publicId, expiresAt);
         return token;
     }
 }

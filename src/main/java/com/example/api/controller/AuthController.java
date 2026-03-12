@@ -81,7 +81,7 @@ public class AuthController {
     @ApiErrorCodeExample({ErrorCode.INVALID_TOKEN, ErrorCode.TOKEN_EXPIRED, ErrorCode.USER_NOT_FOUND})
     @PostMapping("/logout-all")
     public ResponseEntity<Void> logoutAll(@Parameter(hidden = true) @CurrentUser User user) {
-        authService.logoutAll(user.getId());
+        authService.logoutAll(user.getPublicId());
         return ResponseEntity.noContent().build();
     }
 

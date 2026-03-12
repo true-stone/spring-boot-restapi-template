@@ -20,6 +20,8 @@ public class RefreshToken {
     @Column(nullable = false, unique = true, length = 36)
     private String token;
 
+    // DB 저장 시 조인 효율을 위해 내부 PK(Long) 사용
+    // Redis 저장 시에는 publicId(UUID)를 사용 (RedisRefreshTokenStore 참고)
     @Column(nullable = false)
     private Long userId;
 
