@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -252,6 +253,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         final ErrorResponse response = ErrorResponse.of(request, ErrorCode.UNSUPPORTED_MEDIA_TYPE, detail);
         return new ResponseEntity<>(response, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    /**
+     * {@code @PreAuthorize} 등 메서드 시큐리티에서 권한 부족 시 발생하는 예외를 처리합니다. (403 Forbidden)
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    protected ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("event=access_denied method={} path={} status={} code={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                HttpStatus.FORBIDDEN.value(),
+                ErrorCode.ACCESS_DENIED.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(request, ErrorCode.ACCESS_DENIED));
     }
 
     /**
