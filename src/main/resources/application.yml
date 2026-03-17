@@ -13,6 +13,7 @@ spring:
       hibernate:
         auto_quote_keyword: true
         default_batch_fetch_size: 100
+        use_sql_comments: true
 
   sql:
     init:
