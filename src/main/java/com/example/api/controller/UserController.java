@@ -1,16 +1,11 @@
 package com.example.api.controller;
 
 import com.example.api.annotation.ApiErrorCodeExample;
-import com.example.api.annotation.CurrentUser;
-import com.example.api.dto.PageResponse;
-import com.example.api.dto.UserCreateRequest;
-import com.example.api.dto.UserPageParam;
-import com.example.api.dto.UserResponse;
-import com.example.api.entity.User;
+import com.example.api.dto.*;
 import com.example.api.exception.ErrorCode;
 import com.example.api.service.UserService;
+import com.example.api.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -60,9 +55,24 @@ public class UserController {
             ErrorCode.USER_NOT_FOUND
     })
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> myProfile(@Parameter(hidden = true) @CurrentUser User user) {
+    public ResponseEntity<UserResponse> readMyProfile() {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(UserResponse.from(user));
+                .body(userService.readMyProfile(SecurityUtils.getUserPublicId()));
+    }
+
+    @Operation(
+            summary = "내 정보 수정",
+            description = "현재 로그인한 사용자의 이름과 이메일을 수정합니다."
+    )
+    @ApiErrorCodeExample({
+            ErrorCode.INVALID_INPUT_VALUE,
+            ErrorCode.INVALID_TOKEN,
+            ErrorCode.USER_NOT_FOUND,
+            ErrorCode.DUPLICATE_EMAIL
+    })
+    @PatchMapping("/me")
+    public ResponseEntity<UserResponse> updateMyProfile(@Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateMyProfile(request));
     }
 
     @Operation(

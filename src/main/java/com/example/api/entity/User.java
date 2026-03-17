@@ -8,9 +8,6 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.BatchSize;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -122,6 +119,14 @@ public class User extends BaseTime {
 
         user.addRole(UserRole.USER);
         return user;
+    }
+
+    /**
+     * 프로필 정보 수정
+     */
+    public void update(String name, String email) {
+        this.name = name;
+        this.email = email;
     }
 
     /**
